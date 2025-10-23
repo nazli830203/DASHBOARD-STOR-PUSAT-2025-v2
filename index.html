@@ -12,171 +12,48 @@
     .muted { color: #9fb0d6; }
     table th, table td { border-color: rgba(255,255,255,0.04); }
     .scrollbox { max-height:440px; overflow:auto; }
-    .chip { background: rgba(255,255,255,0.03); padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.06); }
   </style>
 </head>
 <body class="p-6 font-sans">
   <div class="max-w-6xl mx-auto">
     <header class="mb-6">
       <h1 class="text-2xl font-semibold">Dashboard Perolehan - Unit Stor HCTM</h1>
-      <p class="muted">Tema: <strong>Modern Gelap</strong> · Data berdasarkan <code>TARIKH MULA</code></p>
+      <p class="muted">Data merangkumi status kontrak aktif dan tamat.</p>
     </header>
 
-    <section class="mb-4 card p-4 rounded-lg grid grid-cols-1 md:grid-cols-5 gap-3">
-      <div>
-        <label class="block text-sm muted">Tahun</label>
-        <select id="filterYear" class="mt-1 w-full bg-transparent border rounded p-2"></select>
-      </div>
-      <div>
-        <label class="block text-sm muted">Jenis</label>
-        <select id="filterJenis" class="mt-1 w-full bg-transparent border rounded p-2">
-          <option value="all">Semua</option>
-          <option value="TENDER">Tender</option>
-          <option value="SEBUT HARGA">Sebut Harga</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm muted">Status</label>
-        <select id="filterStatus" class="mt-1 w-full bg-transparent border rounded p-2"><option value="all">Semua</option></select>
-      </div>
-      <div class="md:col-span-2">
-        <label class="block text-sm muted">PIC (multi-select)</label>
-        <select id="filterPIC" multiple size="4" class="mt-1 w-full bg-transparent border rounded p-2"></select>
-        <p class="muted text-xs mt-1">Tekan Ctrl/Cmd untuk pilih lebih dari satu. Pilih <em>Semua PIC</em> untuk tiada penapisan.</p>
-      </div>
-      <div class="md:col-span-5 text-right">
-        <button id="btnReset" class="px-3 py-2 bg-sky-600 rounded text-white">Reset</button>
-      </div>
-    </section>
-
-    <section class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-      <div class="card p-4 rounded-lg">
-        <h3 class="font-semibold mb-2">Jumlah Kontrak (RM)</h3>
-        <div id="cardTotalRM" class="text-2xl font-bold">-</div>
-        <div class="muted text-sm">Jumlah nilai kontrak dipaparkan mengikut penapis</div>
-      </div>
-      <div class="card p-4 rounded-lg">
-        <h3 class="font-semibold mb-2">Bilangan Perolehan</h3>
-        <div id="cardCount" class="text-2xl font-bold">-</div>
-        <div class="muted text-sm">Bilangan perolehan dipaparkan mengikut penapis</div>
-      </div>
-      <div class="card p-4 rounded-lg">
-        <h3 class="font-semibold mb-2">Tender vs Sebut Harga</h3>
-        <canvas id="chartJenis" height="140"></canvas>
-      </div>
-      <div class="card p-4 rounded-lg">
-        <h3 class="font-semibold mb-2">Trend Tahunan</h3>
-        <canvas id="chartTrend" height="140"></canvas>
-      </div>
+    <section class="grid grid-cols-1 lg:grid-cols-6 gap-4">
+      <div class="card p-4 rounded-lg"><h3 class="font-semibold mb-2">Jumlah Kontrak (RM)</h3><div id="cardTotalRM" class="text-2xl font-bold">-</div></div>
+      <div class="card p-4 rounded-lg"><h3 class="font-semibold mb-2">Bilangan Perolehan</h3><div id="cardCount" class="text-2xl font-bold">-</div></div>
+      <div class="card p-4 rounded-lg"><h3 class="font-semibold mb-2">Kontrak Aktif</h3><div id="cardActive" class="text-2xl font-bold">-</div></div>
+      <div class="card p-4 rounded-lg"><h3 class="font-semibold mb-2">Kontrak Tamat</h3><div id="cardExpired" class="text-2xl font-bold">-</div></div>
+      <div class="card p-4 rounded-lg col-span-2"><h3 class="font-semibold mb-2">Tender vs Sebut Harga</h3><canvas id="chartJenis" height="140"></canvas></div>
+      <div class="card p-4 rounded-lg col-span-2"><h3 class="font-semibold mb-2">Trend Tahunan</h3><canvas id="chartTrend" height="140"></canvas></div>
     </section>
 
     <section class="mt-6 card p-4 rounded-lg">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="font-semibold">Senarai Perolehan</h3>
-        <div>
-          <button id="btnExport" class="px-3 py-2 bg-green-600 rounded text-white mr-2">Export CSV</button>
-          <button id="btnDownloadJSON" class="px-3 py-2 bg-gray-600 rounded text-white">Download JSON</button>
-        </div>
-      </div>
+      <h3 class="font-semibold mb-3">Senarai Perolehan</h3>
       <div class="scrollbox">
         <table class="min-w-full text-sm">
           <thead class="text-left sticky top-0 bg-transparent">
-            <tr>
-              <th class="p-2">Tahun</th><th class="p-2">PIC</th><th class="p-2">Jenis</th><th class="p-2">Status</th><th class="p-2">Syarikat</th><th class="p-2">Nilai (RM)</th><th class="p-2">Tarikh Mula</th><th class="p-2">Tarikh Tamat</th><th class="p-2">No Kontrak</th>
-            </tr>
-          </thead>
-          <tbody id="tableBody"></tbody>
+            <tr><th class="p-2">Tahun</th><th class="p-2">PIC</th><th class="p-2">Jenis</th><th class="p-2">Status</th><th class="p-2">Syarikat</th><th class="p-2">Nilai (RM)</th><th class="p-2">Tarikh Mula</th><th class="p-2">Tarikh Tamat</th></tr>
+          </thead><tbody id="tableBody"></tbody>
         </table>
       </div>
     </section>
-
-    <footer class="mt-6 muted text-sm">Fail siap untuk upload ke GitHub Pages. Generated: 2025-10-06T08:01:16.007074 UTC</footer>
   </div>
 
 <script>
 async function loadData(){ const res = await fetch('data.json'); return res.json(); }
-
-function uniq(arr){ return [...new Set(arr)].filter(x=>x!==null && x!==undefined && x!==''); }
-function formatRM(v){ if(v===null||v===undefined) return ''; return Number(v).toLocaleString(); }
-function toCSV(rows){ if(!rows || rows.length===0) return ''; const keys = Object.keys(rows[0]); const esc = v=>('"'+(''+(v===null||v===undefined?'':v)).replace(/"/g,'""')+'"'); const lines = [keys.map(esc).join(',')]; rows.forEach(r=>{ lines.push(keys.map(k=>esc(r[k])).join(',')); }); return lines.join('\n'); }
-
-function prepareData(raw){
-  return raw.map(r=>({ sheet:r.sheet||'', pic:r.pic||'', syarikat:r.syarikat||'', tajuk:r.tajuk||'', no_kontrak:r.no_kontrak||'', perolehan_raw:r.perolehan_raw||'', jenis:r.jenis||'', status:r.status||'', tarikh_mula: r.tarikh_mula? new Date(r.tarikh_mula):null, tarikh_tamat: r.tarikh_tamat? new Date(r.tarikh_tamat):null, tahun: r.tahun||null, nilai_kontrak_rm: r.nilai_kontrak_rm||null }));
-}
-
-function renderTable(rows){
-  const tbody = document.getElementById('tableBody'); tbody.innerHTML='';
-  rows.forEach(r=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="p-2">${r.tahun||''}</td><td class="p-2">${r.pic||''}</td><td class="p-2">${r.jenis||''}</td><td class="p-2">${r.status||''}</td><td class="p-2">${r.syarikat||''}</td><td class="p-2">${formatRM(r.nilai_kontrak_rm)}</td><td class="p-2">${r.tarikh_mula? r.tarikh_mula.toISOString().slice(0,10):''}</td><td class="p-2">${r.tarikh_tamat? r.tarikh_tamat.toISOString().slice(0,10):''}</td><td class="p-2">${r.no_kontrak||''}</td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-function aggregateCount(rows){ return rows.length; }
-function aggregateSumRM(rows){ return rows.reduce((s,r)=> s + (r.nilai_kontrak_rm? Number(r.nilai_kontrak_rm):0), 0); }
-
-function aggregateBy(rows, key){
-  const map={}; rows.forEach(r=>{ const k = r[key] || 'LAIN'; map[k] = (map[k]||0)+1; }); return { labels: Object.keys(map), values: Object.values(map) };
-}
-function trendPerYear(rows){
-  const map = {}; rows.forEach(r=>{ const y = r.tahun||'LAIN'; map[y] = (map[y]||0)+1; }); const keys = Object.keys(map).filter(k=>k!=='LAIN').sort((a,b)=>a-b); return { labels: keys, values: keys.map(k=>map[k]||0) };
-}
-
-let GLOBAL={raw:[], data:[]}, CH={};
-
-async function main(){
-  const raw = await loadData(); GLOBAL.raw = raw; GLOBAL.data = prepareData(raw);
-
-  const years = uniq(GLOBAL.data.map(d=>d.tahun)).sort((a,b)=>a-b);
-  const fy = document.getElementById('filterYear'); fy.innerHTML = '<option value="all">Semua</option>' + years.map(y=>`<option value="${y}">${y}</option>`).join('');
-
-  const pics = uniq(GLOBAL.data.map(d=>d.pic)).sort();
-  const fp = document.getElementById('filterPIC'); fp.innerHTML = '<option value="all">Semua PIC</option>' + pics.map(p=>`<option value="${p}">${p}</option>`).join('');
-
-  const statuses = uniq(GLOBAL.data.map(d=>d.status)).sort();
-  const fs = document.getElementById('filterStatus'); fs.innerHTML = '<option value="all">Semua</option>' + statuses.map(s=>`<option value="${s}">${s}</option>`).join('');
-
-  document.getElementById('filterYear').addEventListener('change', applyFiltersAndRender);
-  document.getElementById('filterJenis').addEventListener('change', applyFiltersAndRender);
-  document.getElementById('filterStatus').addEventListener('change', applyFiltersAndRender);
-  document.getElementById('filterPIC').addEventListener('change', applyFiltersAndRender);
-  document.getElementById('btnReset').addEventListener('click', ()=>{ document.getElementById('filterYear').value='all'; document.getElementById('filterJenis').value='all'; document.getElementById('filterStatus').value='all'; document.getElementById('filterPIC').value='all'; applyFiltersAndRender(); });
-  document.getElementById('btnExport').addEventListener('click', ()=>{ const rows = currentFiltered(); const csv = toCSV(rows); const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='hctm_export.csv'; a.click(); URL.revokeObjectURL(url); });
-  document.getElementById('btnDownloadJSON').addEventListener('click', ()=>{ const rows = currentFiltered(); const blob = new Blob([JSON.stringify(rows,null,2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='hctm_export.json'; a.click(); URL.revokeObjectURL(url); });
-
-  applyFiltersAndRender();
-}
-
-function currentFiltered(){
-  const fy = document.getElementById('filterYear').value;
-  const fj = document.getElementById('filterJenis').value;
-  const fs = document.getElementById('filterStatus').value;
-  const fp = Array.from(document.getElementById('filterPIC').selectedOptions).map(o=>o.value).filter(v=>v!=='all');
-  let rows = GLOBAL.data.filter(d=> d.tahun !== null );
-  if(fy!=='all') rows = rows.filter(r=> String(r.tahun) === String(fy));
-  if(fj!=='all') rows = rows.filter(r=> r.jenis === fj);
-  if(fs!=='all') rows = rows.filter(r=> r.status === fs);
-  if(fp.length>0) rows = rows.filter(r=> fp.includes(r.pic));
-  return rows;
-}
-
-function applyFiltersAndRender(){
-  const rows = currentFiltered();
-  document.getElementById('cardCount').textContent = aggregateCount(rows);
-  document.getElementById('cardTotalRM').textContent = formatRM(aggregateSumRM(rows));
-  renderTable(rows);
-  const byJenis = aggregateBy(rows, 'jenis');
-  const trend = trendPerYear(rows);
-  if(CH.j) CH.j.destroy(); if(CH.t) CH.t.destroy();
-  const ctxJ = document.getElementById('chartJenis').getContext('2d');
-  CH.j = new Chart(ctxJ, { type:'bar', data:{ labels: byJenis.labels, datasets:[{ label:'Bilangan', data: byJenis.values }] }, options:{ responsive:true, plugins:{ legend:{ display:false } } } });
-  const ctxT = document.getElementById('chartTrend').getContext('2d');
-  CH.t = new Chart(ctxT, { type:'line', data:{ labels: trend.labels, datasets:[{ label:'Bilangan per Tahun', data: trend.values, fill:true, tension:0.3 }] }, options:{ responsive:true } });
-}
-
+function formatRM(v){ return v?Number(v).toLocaleString():'-'; }
+function countActive(rows){ const now=new Date(); return rows.filter(r=>r.tarikh_tamat && new Date(r.tarikh_tamat)>=now).length; }
+function countExpired(rows){ const now=new Date(); return rows.filter(r=>r.tarikh_tamat && new Date(r.tarikh_tamat)<now).length; }
+function renderTable(rows){ const tb=document.getElementById('tableBody'); tb.innerHTML=''; rows.forEach(r=>{ tb.innerHTML+=`<tr><td class='p-2'>${r.tahun||''}</td><td class='p-2'>${r.pic||''}</td><td class='p-2'>${r.jenis||''}</td><td class='p-2'>${r.status||''}</td><td class='p-2'>${r.syarikat||''}</td><td class='p-2'>${formatRM(r.nilai_kontrak_rm)}</td><td class='p-2'>${r.tarikh_mula?.slice(0,10)||''}</td><td class='p-2'>${r.tarikh_tamat?.slice(0,10)||''}</td></tr>` }); }
+function aggregateSumRM(rows){ return rows.reduce((s,r)=>s+(r.nilai_kontrak_rm?Number(r.nilai_kontrak_rm):0),0); }
+function aggregateBy(rows,key){ const map={}; rows.forEach(r=>{const k=r[key]||'LAIN'; map[k]=(map[k]||0)+1;}); return {labels:Object.keys(map),values:Object.values(map)}; }
+function trendPerYear(rows){ const map={}; rows.forEach(r=>{const y=r.tahun||'LAIN'; map[y]=(map[y]||0)+1;}); const keys=Object.keys(map).filter(k=>k!=='LAIN').sort(); return {labels:keys,values:keys.map(k=>map[k])}; }
+let CH={};
+async function main(){ const rows=await loadData(); document.getElementById('cardCount').textContent=rows.length; document.getElementById('cardTotalRM').textContent=formatRM(aggregateSumRM(rows)); document.getElementById('cardActive').textContent=countActive(rows); document.getElementById('cardExpired').textContent=countExpired(rows); renderTable(rows); const byJenis=aggregateBy(rows,'jenis'); const trend=trendPerYear(rows); const ctxJ=document.getElementById('chartJenis').getContext('2d'); const ctxT=document.getElementById('chartTrend').getContext('2d'); CH.j=new Chart(ctxJ,{type:'bar',data:{labels:byJenis.labels,datasets:[{data:byJenis.values}]},options:{plugins:{legend:{display:false}}}}); CH.t=new Chart(ctxT,{type:'line',data:{labels:trend.labels,datasets:[{data:trend.values,fill:true,tension:0.3}]},options:{plugins:{legend:{display:false}}}}); }
 main();
-
 </script>
 </body>
 </html>
