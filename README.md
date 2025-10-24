@@ -1,1 +1,13 @@
-# HCTM Dashboard v2 (Dark Theme)\n\nFiles:\n- index.html -- dashboard (uses data.json)\n- data.json -- normalized data (from your Excel), filtered to records with TARIKH MULA\n- README.md\n\nHow to deploy to GitHub Pages:\n1. Create a new repository (or use existing).\n2. Upload the contents of this folder to the repo root (index.html, data.json, README.md).\n3. In GitHub repo: Settings -> Pages -> Source: choose 'main' branch, root `/` and Save.\n4. Visit `https://<username>.github.io/<repo>/index.html` once published.\n\nFeatures:\n- Multi-select PIC filter (Ctrl/Cmd + click to select multiple). Choose 'Semua PIC' to disable PIC filter.\n- Export CSV & Download JSON of filtered rows.\n- Summary cards for total RM and count, charts for jenis & trend.\n\nGenerated: 2025-10-06T08:01:16.007319 UTC\n
+# Dashboard Perolehan HCTM (Versi V3)
+
+Versi V3 mengekalkan semua fungsi asal dan menambah metrik baru:
+- Jumlah Kontrak Aktif (tarikh tamat > hari ini)
+- Jumlah Kontrak Akan Tamat dalam tempoh 6 bulan
+- Jumlah Kontrak yang telah tamat dalam tahun semasa
+- Tambah lajur `Item Barang` (jika data ada; else '-' akan dipaparkan)
+
+Fail dalam pakej ini:
+- index_v3.html (dashboard baharu, sedia untuk upload ke GitHub Pages)
+- data.json (data asal)
+- data.csv (versi CSV)
+- README.md (panduan ringkas)
