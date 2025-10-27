@@ -4,238 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>HCTM Dashboard V4 - Paparan Kontrak</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js">
-// --- AUTO-GENERATED MAPPING ---
-const fieldMap = {"kod_item": "KOD ITEM", "tajuk": "TAJUK", "nilai_rm": "NILAI ", "no_kontrak": "NO KONTRAK", "jenis": "JENIS PEROLEHAN", "perolehan": "JENIS PEROLEHAN", "tarikh_mula": "MULA KONTRAK", "tarikh_tamat": "TARIKH TAMAT KONTRAK", "status": "STATUS", "tarikh_iklan": "IKLAN", "mesyuarat_teknikal": "MESYUARAT TEKNIKAL", "hantar_laporan_teknikal": "HANTAR LAPORAN TEKNIKAL KE PEROLEHAN"};
-
-// Helpers
-function getField(row, key){ const h = fieldMap[key]; return h? (row[h] || '') : ''; }
-function formatDateString(s){ if(!s) return ''; try{ const d=new Date(s); if(isNaN(d)) return s; return d.toISOString().slice(0,10);}catch(e){return s} }
-function formatRM(v){ return Number(v||0).toLocaleString(); }
-
-function parseDateFlexible(s){
-  if(!s) return null;
-  const d = new Date(s);
-  if(!isNaN(d)) return d;
-  const parts = String(s).split(/[\/\-]/);
-  if(parts.length===3){
-    let dd=parts[0], mm=parts[1], yy=parts[2];
-    if(yy.length===2) yy='20'+yy;
-    const iso = yy+'-'+mm+'-'+dd;
-    const d2 = new Date(iso);
-    if(!isNaN(d2)) return d2;
-  }
-  return null;
-}
-
-let highlightEnabled = true;
-function sortByTarikhTamat(rows){
-  return rows.sort((a,b)=>{
-    const ta = parseDateFlexible(getField(a,'tarikh_tamat'));
-    const tb = parseDateFlexible(getField(b,'tarikh_tamat'));
-    if(ta && tb) return ta - tb;
-    if(ta && !tb) return -1;
-    if(!ta && tb) return 1;
-    return 0;
-  });
-}
-
-function kontrakStatusCounts(rows){
-  const now = new Date();
-  const counts = { tamat:0, '6bulan':0, '1tahun':0 };
-  rows.forEach(r=>{
-    const t = parseDateFlexible(getField(r,'tarikh_tamat'));
-    if(!t) return;
-    if(t < now) counts.tamat += 1;
-    const in6 = new Date(); in6.setMonth(in6.getMonth()+6);
-    if(t >= now && t <= in6) counts['6bulan'] += 1;
-    const in1 = new Date(); in1.setFullYear(in1.getFullYear()+1);
-    if(t >= now && t <= in1) counts['1tahun'] += 1;
-  });
-  return counts;
-}
-
-function applyRowHighlight(tr, row){
-  if(!highlightEnabled) return;
-  const t = parseDateFlexible(getField(row,'tarikh_tamat'));
-  if(!t) return;
-  const now = new Date();
-  const in6 = new Date(); in6.setMonth(in6.getMonth()+6);
-  if(t < now){
-    tr.style.background = 'rgba(220,38,38,0.08)';
-  } else if(t >= now && t <= in6){
-    tr.style.background = 'rgba(234,179,8,0.06)';
-  }
-}
-
-function exportToCSV(rows){
-  if(!rows || rows.length===0) return;
-  const header = ['KOD ITEM','TAJUK','NILAI (RM)','NO KONTRAK','JENIS','PEROLEHAN','TARIKH MULA KONTRAK','TARIKH TAMAT KONTRAK','STATUS','TARIKH IKLAN','MESYUARAT TEKNIKAL','HANTAR LAPORAN TEKNIKAL KE PEROLEHAN'];
-  const csvRows = [header.join(',')];
-  rows.forEach(r=>{
-    const row = [
-      getField(r,'kod_item'),
-      getField(r,'tajuk'),
-      getField(r,'nilai_rm'),
-      getField(r,'no_kontrak'),
-      getField(r,'jenis'),
-      getField(r,'perolehan'),
-      getField(r,'tarikh_mula'),
-      getField(r,'tarikh_tamat'),
-      getField(r,'status'),
-      getField(r,'tarikh_iklan'),
-      getField(r,'mesyuarat_teknikal'),
-      getField(r,'hantar_laporan_teknikal')
-    ].map(v=>`"${String(v||'').replace(/"/g,'""')}"`);
-    csvRows.push(row.join(','));
-  });
-  const blob = new Blob([csvRows.join('\n')], {type: 'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'hctm_export_'+(new Date()).toISOString().slice(0,10)+'.csv';
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-}
-
-// override renderTable to use mapping and highlighting
-function renderTable(rows){
-  const tb=document.getElementById("tableBody"); tb.innerHTML="";
-  rows.forEach(r=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td class="p-2">${getField(r,'kod_item')}</td>
-    <td class="p-2">${getField(r,'tajuk')}</td>
-    <td class="p-2">${formatRM(getField(r,'nilai_rm'))}</td>
-    <td class="p-2">${getField(r,'no_kontrak')}</td>
-    <td class="p-2">${getField(r,'jenis')}</td>
-    <td class="p-2">${getField(r,'perolehan')}</td>
-    <td class="p-2">${formatDateString(getField(r,'tarikh_mula'))}</td>
-    <td class="p-2">${formatDateString(getField(r,'tarikh_tamat'))}</td>
-    <td class="p-2">${getField(r,'status')}</td>
-    <td class="p-2">${formatDateString(getField(r,'tarikh_iklan'))}</td>
-    <td class="p-2">${getField(r,'mesyuarat_teknikal')}</td>
-    <td class="p-2">${getField(r,'hantar_laporan_teknikal')}</td>`;
-    applyRowHighlight(tr, r);
-    tb.appendChild(tr);
-  });
-}
-
-</script>
-  <script src="https://cdn.tailwindcss.com">
-// --- AUTO-GENERATED MAPPING ---
-const fieldMap = {"kod_item": "KOD ITEM", "tajuk": "TAJUK", "nilai_rm": "NILAI ", "no_kontrak": "NO KONTRAK", "jenis": "JENIS PEROLEHAN", "perolehan": "JENIS PEROLEHAN", "tarikh_mula": "MULA KONTRAK", "tarikh_tamat": "TARIKH TAMAT KONTRAK", "status": "STATUS", "tarikh_iklan": "IKLAN", "mesyuarat_teknikal": "MESYUARAT TEKNIKAL", "hantar_laporan_teknikal": "HANTAR LAPORAN TEKNIKAL KE PEROLEHAN"};
-
-// Helpers
-function getField(row, key){ const h = fieldMap[key]; return h? (row[h] || '') : ''; }
-function formatDateString(s){ if(!s) return ''; try{ const d=new Date(s); if(isNaN(d)) return s; return d.toISOString().slice(0,10);}catch(e){return s} }
-function formatRM(v){ return Number(v||0).toLocaleString(); }
-
-function parseDateFlexible(s){
-  if(!s) return null;
-  const d = new Date(s);
-  if(!isNaN(d)) return d;
-  const parts = String(s).split(/[\/\-]/);
-  if(parts.length===3){
-    let dd=parts[0], mm=parts[1], yy=parts[2];
-    if(yy.length===2) yy='20'+yy;
-    const iso = yy+'-'+mm+'-'+dd;
-    const d2 = new Date(iso);
-    if(!isNaN(d2)) return d2;
-  }
-  return null;
-}
-
-let highlightEnabled = true;
-function sortByTarikhTamat(rows){
-  return rows.sort((a,b)=>{
-    const ta = parseDateFlexible(getField(a,'tarikh_tamat'));
-    const tb = parseDateFlexible(getField(b,'tarikh_tamat'));
-    if(ta && tb) return ta - tb;
-    if(ta && !tb) return -1;
-    if(!ta && tb) return 1;
-    return 0;
-  });
-}
-
-function kontrakStatusCounts(rows){
-  const now = new Date();
-  const counts = { tamat:0, '6bulan':0, '1tahun':0 };
-  rows.forEach(r=>{
-    const t = parseDateFlexible(getField(r,'tarikh_tamat'));
-    if(!t) return;
-    if(t < now) counts.tamat += 1;
-    const in6 = new Date(); in6.setMonth(in6.getMonth()+6);
-    if(t >= now && t <= in6) counts['6bulan'] += 1;
-    const in1 = new Date(); in1.setFullYear(in1.getFullYear()+1);
-    if(t >= now && t <= in1) counts['1tahun'] += 1;
-  });
-  return counts;
-}
-
-function applyRowHighlight(tr, row){
-  if(!highlightEnabled) return;
-  const t = parseDateFlexible(getField(row,'tarikh_tamat'));
-  if(!t) return;
-  const now = new Date();
-  const in6 = new Date(); in6.setMonth(in6.getMonth()+6);
-  if(t < now){
-    tr.style.background = 'rgba(220,38,38,0.08)';
-  } else if(t >= now && t <= in6){
-    tr.style.background = 'rgba(234,179,8,0.06)';
-  }
-}
-
-function exportToCSV(rows){
-  if(!rows || rows.length===0) return;
-  const header = ['KOD ITEM','TAJUK','NILAI (RM)','NO KONTRAK','JENIS','PEROLEHAN','TARIKH MULA KONTRAK','TARIKH TAMAT KONTRAK','STATUS','TARIKH IKLAN','MESYUARAT TEKNIKAL','HANTAR LAPORAN TEKNIKAL KE PEROLEHAN'];
-  const csvRows = [header.join(',')];
-  rows.forEach(r=>{
-    const row = [
-      getField(r,'kod_item'),
-      getField(r,'tajuk'),
-      getField(r,'nilai_rm'),
-      getField(r,'no_kontrak'),
-      getField(r,'jenis'),
-      getField(r,'perolehan'),
-      getField(r,'tarikh_mula'),
-      getField(r,'tarikh_tamat'),
-      getField(r,'status'),
-      getField(r,'tarikh_iklan'),
-      getField(r,'mesyuarat_teknikal'),
-      getField(r,'hantar_laporan_teknikal')
-    ].map(v=>`"${String(v||'').replace(/"/g,'""')}"`);
-    csvRows.push(row.join(','));
-  });
-  const blob = new Blob([csvRows.join('\n')], {type: 'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'hctm_export_'+(new Date()).toISOString().slice(0,10)+'.csv';
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-}
-
-// override renderTable to use mapping and highlighting
-function renderTable(rows){
-  const tb=document.getElementById("tableBody"); tb.innerHTML="";
-  rows.forEach(r=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td class="p-2">${getField(r,'kod_item')}</td>
-    <td class="p-2">${getField(r,'tajuk')}</td>
-    <td class="p-2">${formatRM(getField(r,'nilai_rm'))}</td>
-    <td class="p-2">${getField(r,'no_kontrak')}</td>
-    <td class="p-2">${getField(r,'jenis')}</td>
-    <td class="p-2">${getField(r,'perolehan')}</td>
-    <td class="p-2">${formatDateString(getField(r,'tarikh_mula'))}</td>
-    <td class="p-2">${formatDateString(getField(r,'tarikh_tamat'))}</td>
-    <td class="p-2">${getField(r,'status')}</td>
-    <td class="p-2">${formatDateString(getField(r,'tarikh_iklan'))}</td>
-    <td class="p-2">${getField(r,'mesyuarat_teknikal')}</td>
-    <td class="p-2">${getField(r,'hantar_laporan_teknikal')}</td>`;
-    applyRowHighlight(tr, r);
-    tb.appendChild(tr);
-  });
-}
-
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background: linear-gradient(180deg,#0f172a,#07103a); color:#e6eef8; }
     .card { background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); }
@@ -277,7 +47,7 @@ function renderTable(rows){
         </select>
       </div>
       <div class="md:col-span-2 text-right flex items-end justify-end">
-        <button id="btnReset" class="px-3 py-2 bg-sky-600 rounded text-white">Reset</button>\n      <button id="btnExport" class="ml-2 px-3 py-2 bg-emerald-600 rounded text-white">Export CSV</button>\n      <button id="btnToggleHighlight" class="ml-2 px-3 py-2 bg-yellow-600 rounded text-black">Toggle Highlight</button>
+        <button id="btnReset" class="px-3 py-2 bg-sky-600 rounded text-white">Reset</button>
       </div>
     </section>
 
@@ -309,23 +79,13 @@ function renderTable(rows){
       <div class="scrollbox">
         <table class="min-w-full text-sm">
           <thead>
-
-              <tr class="text-left border-b border-slate-700">
-                <th class="p-2">KOD ITEM</th>
-                <th class="p-2">TAJUK</th>
-                <th class="p-2">NILAI (RM)</th>
-                <th class="p-2">NO KONTRAK</th>
-                <th class="p-2">JENIS</th>
-                <th class="p-2">PEROLEHAN</th>
-                <th class="p-2">TARIKH MULA KONTRAK</th>
-                <th class="p-2">TARIKH TAMAT KONTRAK</th>
-                <th class="p-2">STATUS</th>
-                <th class="p-2">TARIKH IKLAN</th>
-                <th class="p-2">MESYUARAT TEKNIKAL</th>
-                <th class="p-2">HANTAR LAPORAN TEKNIKAL KE PEROLEHAN</th>
-              </tr>
-
-</thead>
+            <tr class="text-left border-b border-slate-700">
+              <th class="p-2">Tahun</th><th class="p-2">PIC</th><th class="p-2">Jenis</th>
+              <th class="p-2">Status</th><th class="p-2">Syarikat</th>
+              <th class="p-2">Nilai (RM)</th><th class="p-2">Tarikh Mula</th>
+              <th class="p-2">Tarikh Tamat</th><th class="p-2">No Kontrak</th>
+            </tr>
+          </thead>
           <tbody id="tableBody"></tbody>
         </table>
       </div>
@@ -401,6 +161,44 @@ async function main(){
     tarikh_mula:parseDate(r.tarikh_mula),
     tarikh_tamat:parseDate(r.tarikh_tamat)
   }));
+  // --- Auto-fill Tahun (from MULA KONTRAK) and Status (from STATUS column) ---
+  (function populateYearAndStatus(rows){
+    const yearSet = new Set();
+    const statusSet = new Set();
+    rows.forEach(r=>{
+      const mk = r['MULA KONTRAK'] || r['MULA_KONTRAK'] || r['MULA KONTRAK '];
+      if(mk){
+        const d = new Date(mk);
+        if(!isNaN(d)) yearSet.add(d.getFullYear());
+        else {
+          const parts = String(mk).split(/[\/\-]/);
+          if(parts.length===3){
+            let yy = parts[2];
+            if(yy.length===2) yy = '20'+yy;
+            const y = parseInt(yy);
+            if(!isNaN(y)) yearSet.add(y);
+          }
+        }
+      }
+      const st = r['STATUS'] || r['STATUS '] || r['Status'];
+      if(st && String(st).trim().length>0) statusSet.add(String(st).trim());
+    });
+    const years = Array.from(yearSet).sort((a,b)=>b-a);
+    const yearSelect = document.getElementById('filterYear');
+    if(yearSelect){
+      const prev = yearSelect.value;
+      yearSelect.innerHTML = '<option value="all">Semua</option>' + years.map(y=>`<option value="${y}">${y}</option>`).join('');
+      if(years.includes(parseInt(prev))) yearSelect.value = prev;
+    }
+    const statusSelect = document.getElementById('filterStatus');
+    if(statusSelect){
+      const prevs = statusSelect.value;
+      const statuses = Array.from(statusSet).sort();
+      statusSelect.innerHTML = '<option value="all">Semua</option>' + statuses.map(s=>`<option value="${s}">${s}</option>`).join('');
+      if(statuses.includes(prevs)) statusSelect.value = prevs;
+    }
+  })(rows);
+
   const years=uniq(rows.map(r=>r.tahun)).sort();
   const statuses=uniq(rows.map(r=>r.status)).sort();
   document.getElementById("filterYear").innerHTML='<option value="all">Semua</option>'+years.map(y=>`<option>${y}</option>`).join('');
@@ -413,126 +211,9 @@ async function main(){
   }
   document.querySelectorAll("select").forEach(s=>s.addEventListener("change",render));
   document.getElementById("btnReset").addEventListener("click",()=>{document.querySelectorAll("select").forEach(s=>s.value="all");render();});
-  document.getElementById('btnExport').addEventListener('click', ()=>{ const fdata = sortByTarikhTamat(filterData(rows)); exportToCSV(fdata); });
-  document.getElementById('btnToggleHighlight').addEventListener('click', ()=>{ highlightEnabled = !highlightEnabled; render(); });
   render();
 }
 main();
-
-// --- AUTO-GENERATED MAPPING ---
-const fieldMap = {"kod_item": "KOD ITEM", "tajuk": "TAJUK", "nilai_rm": "NILAI ", "no_kontrak": "NO KONTRAK", "jenis": "JENIS PEROLEHAN", "perolehan": "JENIS PEROLEHAN", "tarikh_mula": "MULA KONTRAK", "tarikh_tamat": "TARIKH TAMAT KONTRAK", "status": "STATUS", "tarikh_iklan": "IKLAN", "mesyuarat_teknikal": "MESYUARAT TEKNIKAL", "hantar_laporan_teknikal": "HANTAR LAPORAN TEKNIKAL KE PEROLEHAN"};
-
-// Helpers
-function getField(row, key){ const h = fieldMap[key]; return h? (row[h] || '') : ''; }
-function formatDateString(s){ if(!s) return ''; try{ const d=new Date(s); if(isNaN(d)) return s; return d.toISOString().slice(0,10);}catch(e){return s} }
-function formatRM(v){ return Number(v||0).toLocaleString(); }
-
-function parseDateFlexible(s){
-  if(!s) return null;
-  const d = new Date(s);
-  if(!isNaN(d)) return d;
-  const parts = String(s).split(/[\/\-]/);
-  if(parts.length===3){
-    let dd=parts[0], mm=parts[1], yy=parts[2];
-    if(yy.length===2) yy='20'+yy;
-    const iso = yy+'-'+mm+'-'+dd;
-    const d2 = new Date(iso);
-    if(!isNaN(d2)) return d2;
-  }
-  return null;
-}
-
-let highlightEnabled = true;
-function sortByTarikhTamat(rows){
-  return rows.sort((a,b)=>{
-    const ta = parseDateFlexible(getField(a,'tarikh_tamat'));
-    const tb = parseDateFlexible(getField(b,'tarikh_tamat'));
-    if(ta && tb) return ta - tb;
-    if(ta && !tb) return -1;
-    if(!ta && tb) return 1;
-    return 0;
-  });
-}
-
-function kontrakStatusCounts(rows){
-  const now = new Date();
-  const counts = { tamat:0, '6bulan':0, '1tahun':0 };
-  rows.forEach(r=>{
-    const t = parseDateFlexible(getField(r,'tarikh_tamat'));
-    if(!t) return;
-    if(t < now) counts.tamat += 1;
-    const in6 = new Date(); in6.setMonth(in6.getMonth()+6);
-    if(t >= now && t <= in6) counts['6bulan'] += 1;
-    const in1 = new Date(); in1.setFullYear(in1.getFullYear()+1);
-    if(t >= now && t <= in1) counts['1tahun'] += 1;
-  });
-  return counts;
-}
-
-function applyRowHighlight(tr, row){
-  if(!highlightEnabled) return;
-  const t = parseDateFlexible(getField(row,'tarikh_tamat'));
-  if(!t) return;
-  const now = new Date();
-  const in6 = new Date(); in6.setMonth(in6.getMonth()+6);
-  if(t < now){
-    tr.style.background = 'rgba(220,38,38,0.08)';
-  } else if(t >= now && t <= in6){
-    tr.style.background = 'rgba(234,179,8,0.06)';
-  }
-}
-
-function exportToCSV(rows){
-  if(!rows || rows.length===0) return;
-  const header = ['KOD ITEM','TAJUK','NILAI (RM)','NO KONTRAK','JENIS','PEROLEHAN','TARIKH MULA KONTRAK','TARIKH TAMAT KONTRAK','STATUS','TARIKH IKLAN','MESYUARAT TEKNIKAL','HANTAR LAPORAN TEKNIKAL KE PEROLEHAN'];
-  const csvRows = [header.join(',')];
-  rows.forEach(r=>{
-    const row = [
-      getField(r,'kod_item'),
-      getField(r,'tajuk'),
-      getField(r,'nilai_rm'),
-      getField(r,'no_kontrak'),
-      getField(r,'jenis'),
-      getField(r,'perolehan'),
-      getField(r,'tarikh_mula'),
-      getField(r,'tarikh_tamat'),
-      getField(r,'status'),
-      getField(r,'tarikh_iklan'),
-      getField(r,'mesyuarat_teknikal'),
-      getField(r,'hantar_laporan_teknikal')
-    ].map(v=>`"${String(v||'').replace(/"/g,'""')}"`);
-    csvRows.push(row.join(','));
-  });
-  const blob = new Blob([csvRows.join('\n')], {type: 'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'hctm_export_'+(new Date()).toISOString().slice(0,10)+'.csv';
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-}
-
-// override renderTable to use mapping and highlighting
-function renderTable(rows){
-  const tb=document.getElementById("tableBody"); tb.innerHTML="";
-  rows.forEach(r=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td class="p-2">${getField(r,'kod_item')}</td>
-    <td class="p-2">${getField(r,'tajuk')}</td>
-    <td class="p-2">${formatRM(getField(r,'nilai_rm'))}</td>
-    <td class="p-2">${getField(r,'no_kontrak')}</td>
-    <td class="p-2">${getField(r,'jenis')}</td>
-    <td class="p-2">${getField(r,'perolehan')}</td>
-    <td class="p-2">${formatDateString(getField(r,'tarikh_mula'))}</td>
-    <td class="p-2">${formatDateString(getField(r,'tarikh_tamat'))}</td>
-    <td class="p-2">${getField(r,'status')}</td>
-    <td class="p-2">${formatDateString(getField(r,'tarikh_iklan'))}</td>
-    <td class="p-2">${getField(r,'mesyuarat_teknikal')}</td>
-    <td class="p-2">${getField(r,'hantar_laporan_teknikal')}</td>`;
-    applyRowHighlight(tr, r);
-    tb.appendChild(tr);
-  });
-}
-
 </script>
 </body>
 </html>
