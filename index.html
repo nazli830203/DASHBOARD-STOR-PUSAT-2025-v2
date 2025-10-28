@@ -8,51 +8,48 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-body { background: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
-.card { background: rgba(255,255,255,0.05); border-radius: 1rem; padding: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-th { text-align: left; color: #93c5fd; }
-tr:nth-child(even) { background: rgba(255,255,255,0.03); }
-.highlight-red { background: rgba(239,68,68,0.15); }
-.highlight-yellow { background: rgba(250,204,21,0.15); }
+body { background: #0f172a; color: #e2e8f0; font-family: sans-serif; }
+.card { background: rgba(255,255,255,0.05); border-radius: 0.75rem; padding: 1rem; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th, td { border-bottom: 1px solid rgba(255,255,255,0.1); padding: 0.5rem; }
+th { text-align: left; color: #a5b4fc; }
+tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+.highlight-red { background: rgba(220,38,38,0.1); }
+.highlight-yellow { background: rgba(234,179,8,0.1); }
 select, button { color: black; }
 </style>
 </head>
 <body class="p-6">
-<h1 class="text-3xl font-bold mb-4">📊 Dashboard Perolehan HCTM</h1>
+<h1 class="text-2xl font-semibold mb-4">📊 Dashboard Perolehan HCTM</h1>
 
-<!-- Filters -->
 <div class="grid md:grid-cols-4 gap-3 mb-5">
-  <div><label>Tahun</label><select id="filterYear" class="w-full p-2 rounded"></select></div>
-  <div><label>Status</label><select id="filterStatus" class="w-full p-2 rounded"></select></div>
+  <div><label>Tahun</label>
+    <select id="filterYear" class="w-full p-2 rounded"></select></div>
+  <div><label>Status</label>
+    <select id="filterStatus" class="w-full p-2 rounded"></select></div>
   <div><label>Kontrak Tamat</label>
     <select id="filterTamat" class="w-full p-2 rounded">
       <option value="all">Semua</option>
       <option value="tamat">Tamat</option>
       <option value="6bulan">6 Bulan Akan Tamat</option>
       <option value="tahun">Tahun Semasa</option>
-    </select>
-  </div>
+    </select></div>
   <div class="flex items-end"><button id="btnReset" class="p-2 bg-blue-500 text-white rounded w-full">Reset</button></div>
 </div>
 
-<!-- Summary Cards -->
 <div class="grid md:grid-cols-3 gap-4 mb-5">
-  <div class="card"><h3>Jumlah Kontrak (RM)</h3><div id="cardRM" class="text-2xl font-bold">-</div></div>
-  <div class="card"><h3>Bilangan</h3><div id="cardBil" class="text-2xl font-bold">-</div></div>
-  <div class="card"><h3>Tahun Dipilih</h3><div id="cardTahun" class="text-2xl font-bold">-</div></div>
+  <div class="card"><h3>Jumlah Kontrak (RM)</h3><div id="cardRM" class="text-xl font-bold">-</div></div>
+  <div class="card"><h3>Bilangan</h3><div id="cardBil" class="text-xl font-bold">-</div></div>
+  <div class="card"><h3>Tahun Dipilih</h3><div id="cardTahun" class="text-xl font-bold">-</div></div>
 </div>
 
-<!-- Charts -->
 <div class="grid md:grid-cols-2 gap-4 mb-5">
   <div class="card"><canvas id="chartJenis"></canvas></div>
   <div class="card"><canvas id="chartTrend"></canvas></div>
 </div>
 
-<!-- Table -->
 <div class="card">
-  <h2 class="text-xl font-semibold mb-2">Senarai Perolehan</h2>
+  <h2 class="mb-2">Senarai Perolehan</h2>
   <div class="overflow-x-auto">
     <table>
       <thead id="thead"></thead>
@@ -67,112 +64,14 @@ async function loadData() {
   const text = await res.text();
   return Papa.parse(text, { header: true, skipEmptyLines: true }).data;
 }
-
-function parseDate(s){
-  if(!s) return null;
-  const d = new Date(s);
-  if(!isNaN(d)) return d;
-  const p = s.split(/[\\/\\-]/);
-  if(p.length===3){return new Date(p[2],p[1]-1,p[0]);}
-  return null;
-}
-
-function formatRM(val){
-  const n = Number(String(val).replace(/[^0-9.\-]/g,'')); 
-  return isNaN(n)? val : n.toLocaleString('ms-MY');
-}
-
-function renderTable(rows){
-  const tb = document.getElementById("tbody");
-  const th = document.getElementById("thead");
-  tb.innerHTML = ''; th.innerHTML = '';
-  if(rows.length===0){tb.innerHTML='<tr><td colspan="10" class="p-3">Tiada data</td></tr>';return;}
-  const headers = Object.keys(rows[0]);
-  th.innerHTML = '<tr>' + headers.map(h=>`<th>${h}</th>`).join('') + '</tr>';
-  rows.forEach(r=>{
-    const tr = document.createElement('tr');
-    headers.forEach(h=>{
-      const td=document.createElement('td');
-      td.textContent=r[h]||'';
-      tr.appendChild(td);
-    });
-    const tamat = r['TAMAT KONTRAK'] || r['TARIKH TAMAT KONTRAK'];
-    const t = parseDate(tamat);
-    if(t){
-      const now=new Date(); const in6=new Date(); in6.setMonth(in6.getMonth()+6);
-      if(t<now) tr.classList.add('highlight-red');
-      else if(t>=now && t<=in6) tr.classList.add('highlight-yellow');
-    }
-    tb.appendChild(tr);
-  });
-}
-
-function fillDropdowns(rows){
-  const tahunSet=new Set(), statusSet=new Set();
-  rows.forEach(r=>{
-    const mula=parseDate(r['MULA KONTRAK']||r['TARIKH MULA KONTRAK']);
-    if(mula) tahunSet.add(mula.getFullYear());
-    if(r['STATUS']) statusSet.add(r['STATUS']);
-  });
-  document.getElementById('filterYear').innerHTML='<option value="all">Semua</option>'+[...tahunSet].sort((a,b)=>b-a).map(y=>`<option value="${y}">${y}</option>`).join('');
-  document.getElementById('filterStatus').innerHTML='<option value="all">Semua</option>'+[...statusSet].map(s=>`<option value="${s}">${s}</option>`).join('');
-}
-
-function filterData(rows){
-  const fy=document.getElementById('filterYear').value;
-  const fs=document.getElementById('filterStatus').value;
-  const ft=document.getElementById('filterTamat').value;
-  const now=new Date(); const in6=new Date(); in6.setMonth(in6.getMonth()+6);
-  return rows.filter(r=>{
-    let ok=true;
-    const mula=parseDate(r['MULA KONTRAK']||r['TARIKH MULA KONTRAK']);
-    const tamat=parseDate(r['TAMAT KONTRAK']||r['TARIKH TAMAT KONTRAK']);
-    if(fy!=='all' && (!mula || mula.getFullYear()!=fy)) ok=false;
-    if(fs!=='all' && (r['STATUS']||'')!==fs) ok=false;
-    if(ft==='tamat' && !(tamat && tamat<now)) ok=false;
-    if(ft==='6bulan' && !(tamat && tamat>=now && tamat<=in6)) ok=false;
-    if(ft==='tahun' && !(tamat && tamat.getFullYear()===now.getFullYear())) ok=false;
-    return ok;
-  });
-}
-
-function updateCards(rows){
-  const jumlah = rows.reduce((a,b)=>a+Number(String(b['NILAI']||b['NILAI (RM)']||0).replace(/[^0-9.\-]/g,'')),0);
-  document.getElementById('cardRM').textContent=formatRM(jumlah);
-  document.getElementById('cardBil').textContent=rows.length;
-  const fy=document.getElementById('filterYear').value;
-  document.getElementById('cardTahun').textContent=(fy==='all')?'-':fy;
-}
-
-function drawCharts(rows){
-  const jenisCount={};
-  rows.forEach(r=>{
-    const j=r['JENIS PEROLEHAN']||r['JENIS']||'Lain';
-    jenisCount[j]=(jenisCount[j]||0)+1;
-  });
-  if(window._c1) window._c1.destroy();
-  window._c1=new Chart(document.getElementById('chartJenis'),{
-    type:'bar',
-    data:{labels:Object.keys(jenisCount),datasets:[{label:'Jenis Perolehan',data:Object.values(jenisCount)}]},
-    options:{plugins:{legend:{display:false}}}
-  });
-}
-
-async function main(){
-  const rows=await loadData();
-  fillDropdowns(rows);
-  renderTable(rows);
-  updateCards(rows);
-  drawCharts(rows);
-  document.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{
-    const f=filterData(rows);
-    renderTable(f); updateCards(f); drawCharts(f);
-  }));
-  document.getElementById('btnReset').addEventListener('click',()=>{
-    document.querySelectorAll('select').forEach(s=>s.value='all');
-    renderTable(rows); updateCards(rows); drawCharts(rows);
-  });
-}
+function parseDate(s){ if(!s) return null; const d=new Date(s); if(!isNaN(d)) return d; const p=s.split(/[\/\-]/); if(p.length===3){return new Date(p[2],p[1]-1,p[0]);} return null; }
+function formatRM(val){ const n=Number(String(val).replace(/[^0-9.\-]/g,'')); return isNaN(n)?val:n.toLocaleString('ms-MY'); }
+function renderTable(rows){ const tb=document.getElementById("tbody"); const th=document.getElementById("thead"); tb.innerHTML=''; th.innerHTML=''; if(rows.length===0){tb.innerHTML='<tr><td colspan="10" class="p-3">Tiada data</td></tr>';return;} const headers=Object.keys(rows[0]); th.innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>'; rows.forEach(r=>{ const tr=document.createElement('tr'); headers.forEach(h=>{ const td=document.createElement('td'); td.textContent=r[h]||''; tr.appendChild(td); }); const tamat=r['TAMAT KONTRAK']||r['TARIKH TAMAT KONTRAK']; const t=parseDate(tamat); if(t){ const now=new Date(); const in6=new Date(); in6.setMonth(in6.getMonth()+6); if(t<now) tr.classList.add('highlight-red'); else if(t>=now&&t<=in6) tr.classList.add('highlight-yellow'); } tb.appendChild(tr); }); }
+function fillDropdowns(rows){ const tahunSet=new Set(); const statusSet=new Set(); rows.forEach(r=>{ const mula=parseDate(r['MULA KONTRAK']||r['TARIKH MULA KONTRAK']); if(mula) tahunSet.add(mula.getFullYear()); if(r['STATUS']) statusSet.add(r['STATUS']); }); const fy=document.getElementById('filterYear'); fy.innerHTML='<option value="all">Semua</option>'+[...tahunSet].sort((a,b)=>b-a).map(y=>`<option value="${y}">${y}</option>`).join(''); const fs=document.getElementById('filterStatus'); fs.innerHTML='<option value="all">Semua</option>'+[...statusSet].map(s=>`<option value="${s}">${s}</option>`).join(''); }
+function filterData(rows){ const fy=document.getElementById('filterYear').value; const fs=document.getElementById('filterStatus').value; const ft=document.getElementById('filterTamat').value; const now=new Date(); const in6=new Date(); in6.setMonth(in6.getMonth()+6); return rows.filter(r=>{ let ok=true; const mula=parseDate(r['MULA KONTRAK']||r['TARIKH MULA KONTRAK']); const tamat=parseDate(r['TAMAT KONTRAK']||r['TARIKH TAMAT KONTRAK']); if(fy!=='all'&&(!mula||mula.getFullYear()!=fy)) ok=false; if(fs!=='all'&&(r['STATUS']||'')!==fs) ok=false; if(ft==='tamat'&&!(tamat&&tamat<now)) ok=false; if(ft==='6bulan'&&!(tamat&&tamat>=now&&tamat<=in6)) ok=false; if(ft==='tahun'&&!(tamat&&tamat.getFullYear()===now.getFullYear())) ok=false; return ok; }); }
+function updateCards(rows){ const jumlah=rows.reduce((a,b)=>a+Number(String(b['NILAI']||b['NILAI (RM)']||0).replace(/[^0-9.\-]/g,'')),0); document.getElementById('cardRM').textContent=formatRM(jumlah); document.getElementById('cardBil').textContent=rows.length; const fy=document.getElementById('filterYear').value; document.getElementById('cardTahun').textContent=(fy==='all')?'-':fy; }
+function drawCharts(rows){ const jenisCount={},trendCount={}; rows.forEach(r=>{ const j=r['JENIS PEROLEHAN']||r['JENIS']||'Lain'; jenisCount[j]=(jenisCount[j]||0)+1; const mula=parseDate(r['MULA KONTRAK']||r['TARIKH MULA KONTRAK']); const y= mula? mula.getFullYear():'-'; trendCount[y]=(trendCount[y]||0)+1; }); if(window._c1) window._c1.destroy(); if(window._c2) window._c2.destroy(); window._c1=new Chart(document.getElementById('chartJenis'),{type:'bar',data:{labels:Object.keys(jenisCount),datasets:[{label:'Jenis',data:Object.values(jenisCount)}]}}); window._c2=new Chart(document.getElementById('chartTrend'),{type:'line',data:{labels:Object.keys(trendCount),datasets:[{label:'Trend',data:Object.values(trendCount)}]}}); }
+async function main(){ const rows=await loadData(); fillDropdowns(rows); renderTable(rows); updateCards(rows); drawCharts(rows); document.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{ const f=filterData(rows); renderTable(f); updateCards(f); drawCharts(f); })); document.getElementById('btnReset').addEventListener('click',()=>{ document.querySelectorAll('select').forEach(s=>s.value='all'); renderTable(rows); updateCards(rows); drawCharts(rows); }); }
 main();
 </script>
 </body>
