@@ -1,77 +1,261 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ms">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard Perolehan HCTM</title>
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-body { background: #0f172a; color: #e2e8f0; font-family: sans-serif; }
-.card { background: rgba(255,255,255,0.05); border-radius: 0.75rem; padding: 1rem; }
-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-th, td { border-bottom: 1px solid rgba(255,255,255,0.1); padding: 0.5rem; }
-th { text-align: left; color: #a5b4fc; }
-tr:nth-child(even) { background: rgba(255,255,255,0.02); }
-.highlight-red { background: rgba(220,38,38,0.1); }
-.highlight-yellow { background: rgba(234,179,8,0.1); }
-select, button { color: black; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HCTM Dashboard - V9 (GitHub CSV)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <style>
+    body { background: linear-gradient(180deg,#0f172a,#07103a); color:#e6eef8; }
+    .card { background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); }
+    .muted { color:#9fb0d6; }
+    table th, table td { border-color: rgba(255,255,255,0.05); }
+    .scrollbox { max-height:450px; overflow:auto; }
+  </style>
 </head>
-<body class="p-6">
-<h1 class="text-2xl font-semibold mb-4">📊 Dashboard Perolehan HCTM</h1>
+<body class="p-6 font-sans">
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-2xl font-semibold mb-2">Dashboard Perolehan HCTM (V9)</h1>
+    <p class="muted mb-4">Sumber data: https://raw.githubusercontent.com/nazli830203/DASHBOARD-STOR-PUSAT-2025-v2/main/data.csv</p>
 
-<div class="grid md:grid-cols-4 gap-3 mb-5">
-  <div><label>Tahun</label>
-    <select id="filterYear" class="w-full p-2 rounded"></select></div>
-  <div><label>Status</label>
-    <select id="filterStatus" class="w-full p-2 rounded"></select></div>
-  <div><label>Kontrak Tamat</label>
-    <select id="filterTamat" class="w-full p-2 rounded">
-      <option value="all">Semua</option>
-      <option value="tamat">Tamat</option>
-      <option value="6bulan">6 Bulan Akan Tamat</option>
-      <option value="tahun">Tahun Semasa</option>
-    </select></div>
-  <div class="flex items-end"><button id="btnReset" class="p-2 bg-blue-500 text-white rounded w-full">Reset</button></div>
-</div>
+    <!-- Filter Section -->
+    <section class="grid md:grid-cols-6 gap-3 card p-4 rounded-lg mb-5">
+      <div>
+        <label class="block text-sm muted">Tahun</label>
+        <select id="filterYear" class="mt-1 w-full bg-transparent border rounded p-2"></select>
+      </div>
+      <div>
+        <label class="block text-sm muted">Jenis</label>
+        <select id="filterJenis" class="mt-1 w-full bg-transparent border rounded p-2">
+          <option value="all">Semua</option>
+          <option value="TENDER">Tender</option>
+          <option value="SEBUT HARGA">Sebut Harga</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm muted">Status</label>
+        <select id="filterStatus" class="mt-1 w-full bg-transparent border rounded p-2"></select>
+      </div>
+      <div>
+        <label class="block text-sm muted">Paparan Kontrak</label>
+        <select id="filterContract" class="mt-1 w-full bg-transparent border rounded p-2">
+          <option value="all">Semua</option>
+          <option value="aktif">Aktif</option>
+          <option value="6bulan">6 Bulan Tamat</option>
+          <option value="tahuns">Tamat Tahun Semasa</option>
+        </select>
+      </div>
+      <div class="md:col-span-2 text-right flex items-end justify-end">
+        <button id="btnReset" class="px-3 py-2 bg-sky-600 rounded text-white">Reset</button>
+        <button id="btnExport" class="ml-2 px-3 py-2 bg-emerald-600 rounded text-white">Export CSV</button>
+        <button id="btnToggleHighlight" class="ml-2 px-3 py-2 bg-yellow-600 rounded text-black">Toggle Highlight</button>
+      </div>
+    </section>
 
-<div class="grid md:grid-cols-3 gap-4 mb-5">
-  <div class="card"><h3>Jumlah Kontrak (RM)</h3><div id="cardRM" class="text-xl font-bold">-</div></div>
-  <div class="card"><h3>Bilangan</h3><div id="cardBil" class="text-xl font-bold">-</div></div>
-  <div class="card"><h3>Tahun Dipilih</h3><div id="cardTahun" class="text-xl font-bold">-</div></div>
-</div>
+    <!-- Cards -->
+    <section class="grid md:grid-cols-3 gap-4 mb-5">
+      <div class="card p-4 rounded-lg">
+        <h3 class="font-semibold mb-1">Jumlah Kontrak (RM)</h3>
+        <div id="cardTotalRM" class="text-2xl font-bold">-</div>
+      </div>
+      <div class="card p-4 rounded-lg">
+        <h3 class="font-semibold mb-1">Bilangan Perolehan</h3>
+        <div id="cardCount" class="text-2xl font-bold">-</div>
+      </div>
+      <div class="card p-4 rounded-lg">
+        <h3 class="font-semibold mb-1">Tahun Dipilih</h3>
+        <div id="cardYear" class="text-2xl font-bold">-</div>
+      </div>
+    </section>
 
-<div class="grid md:grid-cols-2 gap-4 mb-5">
-  <div class="card"><canvas id="chartJenis"></canvas></div>
-  <div class="card"><canvas id="chartTrend"></canvas></div>
-</div>
+    <!-- Charts -->
+    <section class="grid md:grid-cols-2 gap-4 mb-5">
+      <div class="card p-4 rounded-lg"><canvas id="chartJenis"></canvas></div>
+      <div class="card p-4 rounded-lg"><canvas id="chartTrend"></canvas></div>
+    </section>
 
-<div class="card">
-  <h2 class="mb-2">Senarai Perolehan</h2>
-  <div class="overflow-x-auto">
-    <table>
-      <thead id="thead"></thead>
-      <tbody id="tbody"></tbody>
-    </table>
+    <!-- Table -->
+    <section class="card p-4 rounded-lg">
+      <h3 class="font-semibold mb-2">Senarai Perolehan</h3>
+      <div class="scrollbox">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="text-left border-b border-slate-700">
+              <th class="p-2">KOD ITEM</th>
+              <th class="p-2">TAJUK</th>
+              <th class="p-2">NILAI (RM)</th>
+              <th class="p-2">NO KONTRAK</th>
+              <th class="p-2">JENIS</th>
+              <th class="p-2">PEROLEHAN</th>
+              <th class="p-2">TARIKH MULA KONTRAK</th>
+              <th class="p-2">TARIKH TAMAT KONTRAK</th>
+              <th class="p-2">STATUS</th>
+              <th class="p-2">TARIKH IKLAN</th>
+              <th class="p-2">MESYUARAT TEKNIKAL</th>
+              <th class="p-2">HANTAR LAPORAN TEKNIKAL KE PEROLEHAN</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="mt-3 muted text-sm"><strong>Ringkasan Kontrak Tamat:</strong> <span id="ks_tamat">-</span> | <span id="ks_6bulan">-</span> (6 bulan) | <span id="ks_1tahun">-</span> (1 tahun)</div>
+    </section>
+
+    <footer class="mt-6 muted text-sm text-center">Versi V9 • Baca CSV dari GitHub</footer>
   </div>
-</div>
 
 <script>
-async function loadData() {
-  const res = await fetch('data.csv');
-  const text = await res.text();
-  return Papa.parse(text, { header: true, skipEmptyLines: true }).data;
+const CSV_URL = "https://raw.githubusercontent.com/nazli830203/DASHBOARD-STOR-PUSAT-2025-v2/main/data.csv";
+
+async function loadCSV(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Failed to fetch CSV: '+res.status);
+  const txt = await res.text();
+  return Papa.parse(txt, { header: true, skipEmptyLines: true }).data;
 }
-function parseDate(s){ if(!s) return null; const d=new Date(s); if(!isNaN(d)) return d; const p=s.split(/[\/\-]/); if(p.length===3){return new Date(p[2],p[1]-1,p[0]);} return null; }
-function formatRM(val){ const n=Number(String(val).replace(/[^0-9.\-]/g,'')); return isNaN(n)?val:n.toLocaleString('ms-MY'); }
-function renderTable(rows){ const tb=document.getElementById("tbody"); const th=document.getElementById("thead"); tb.innerHTML=''; th.innerHTML=''; if(rows.length===0){tb.innerHTML='<tr><td colspan="10" class="p-3">Tiada data</td></tr>';return;} const headers=Object.keys(rows[0]); th.innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>'; rows.forEach(r=>{ const tr=document.createElement('tr'); headers.forEach(h=>{ const td=document.createElement('td'); td.textContent=r[h]||''; tr.appendChild(td); }); const tamat=r['TAMAT KONTRAK']||r['TARIKH TAMAT KONTRAK']; const t=parseDate(tamat); if(t){ const now=new Date(); const in6=new Date(); in6.setMonth(in6.getMonth()+6); if(t<now) tr.classList.add('highlight-red'); else if(t>=now&&t<=in6) tr.classList.add('highlight-yellow'); } tb.appendChild(tr); }); }
-function fillDropdowns(rows){ const tahunSet=new Set(); const statusSet=new Set(); rows.forEach(r=>{ const mula=parseDate(r['MULA KONTRAK']||r['TARIKH MULA KONTRAK']); if(mula) tahunSet.add(mula.getFullYear()); if(r['STATUS']) statusSet.add(r['STATUS']); }); const fy=document.getElementById('filterYear'); fy.innerHTML='<option value="all">Semua</option>'+[...tahunSet].sort((a,b)=>b-a).map(y=>`<option value="${y}">${y}</option>`).join(''); const fs=document.getElementById('filterStatus'); fs.innerHTML='<option value="all">Semua</option>'+[...statusSet].map(s=>`<option value="${s}">${s}</option>`).join(''); }
-function filterData(rows){ const fy=document.getElementById('filterYear').value; const fs=document.getElementById('filterStatus').value; const ft=document.getElementById('filterTamat').value; const now=new Date(); const in6=new Date(); in6.setMonth(in6.getMonth()+6); return rows.filter(r=>{ let ok=true; const mula=parseDate(r['MULA KONTRAK']||r['TARIKH MULA KONTRAK']); const tamat=parseDate(r['TAMAT KONTRAK']||r['TARIKH TAMAT KONTRAK']); if(fy!=='all'&&(!mula||mula.getFullYear()!=fy)) ok=false; if(fs!=='all'&&(r['STATUS']||'')!==fs) ok=false; if(ft==='tamat'&&!(tamat&&tamat<now)) ok=false; if(ft==='6bulan'&&!(tamat&&tamat>=now&&tamat<=in6)) ok=false; if(ft==='tahun'&&!(tamat&&tamat.getFullYear()===now.getFullYear())) ok=false; return ok; }); }
-function updateCards(rows){ const jumlah=rows.reduce((a,b)=>a+Number(String(b['NILAI']||b['NILAI (RM)']||0).replace(/[^0-9.\-]/g,'')),0); document.getElementById('cardRM').textContent=formatRM(jumlah); document.getElementById('cardBil').textContent=rows.length; const fy=document.getElementById('filterYear').value; document.getElementById('cardTahun').textContent=(fy==='all')?'-':fy; }
-function drawCharts(rows){ const jenisCount={},trendCount={}; rows.forEach(r=>{ const j=r['JENIS PEROLEHAN']||r['JENIS']||'Lain'; jenisCount[j]=(jenisCount[j]||0)+1; const mula=parseDate(r['MULA KONTRAK']||r['TARIKH MULA KONTRAK']); const y= mula? mula.getFullYear():'-'; trendCount[y]=(trendCount[y]||0)+1; }); if(window._c1) window._c1.destroy(); if(window._c2) window._c2.destroy(); window._c1=new Chart(document.getElementById('chartJenis'),{type:'bar',data:{labels:Object.keys(jenisCount),datasets:[{label:'Jenis',data:Object.values(jenisCount)}]}}); window._c2=new Chart(document.getElementById('chartTrend'),{type:'line',data:{labels:Object.keys(trendCount),datasets:[{label:'Trend',data:Object.values(trendCount)}]}}); }
-async function main(){ const rows=await loadData(); fillDropdowns(rows); renderTable(rows); updateCards(rows); drawCharts(rows); document.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{ const f=filterData(rows); renderTable(f); updateCards(f); drawCharts(f); })); document.getElementById('btnReset').addEventListener('click',()=>{ document.querySelectorAll('select').forEach(s=>s.value='all'); renderTable(rows); updateCards(rows); drawCharts(rows); }); }
+
+function detectMapping(headers){
+  const up = headers.map(h=>h.toUpperCase());
+  function find(cands){
+    for(const c of cands){ const ci=c.toUpperCase(); const idx=up.indexOf(ci); if(idx>=0) return headers[idx]; }
+    for(const h of headers){ for(const c of cands){ if(h.toUpperCase().includes(c.toUpperCase())||c.toUpperCase().includes(h.toUpperCase())) return h; } }
+    return null;
+  }
+  return {
+    kod_item: find(['KOD ITEM','KOD','KOD_BARANG','KOD BARANG']),
+    tajuk: find(['TAJUK','NAMA BARANG','ITEM','KETERANGAN']),
+    nilai_rm: find(['NILAI (RM)','NILAI','HARGA']),
+    no_kontrak: find(['NO KONTRAK','NOMBOR KONTRAK']),
+    jenis: find(['JENIS','JENIS PEROLEHAN','JENIS KONTRAK']),
+    perolehan: find(['PEROLEHAN','JENIS PEROLEHAN']),
+    tarikh_mula: find(['MULA KONTRAK','TARIKH MULA','MULA_KONTRAK']),
+    tarikh_tamat: find(['TAMAT KONTRAK','TARIKH TAMAT','TAMAT_KONTRAK']),
+    status: find(['STATUS','STATUS KONTRAK']),
+    tarikh_iklan: find(['IKLAN','TARIKH IKLAN']),
+    mesyuarat_teknikal: find(['MESYUARAT TEKNIKAL','MESYUARAT']),
+    hantar_laporan_teknikal: find(['HANTAR LAPORAN TEKNIKAL KE PEROLEHAN','HANTAR LAPORAN TEKNIKAL'])
+  };
+}
+
+function getField(row, map, key){ const h = map[key]; return h ? (row[h] || '') : ''; }
+function parseDateFlexible(s){ if(!s) return null; const str=String(s).trim(); let d=new Date(str); if(!isNaN(d)) return d; const parts=str.split(/[\/\-]/); if(parts.length===3){ let dd=parts[0].padStart(2,'0'), mm=parts[1].padStart(2,'0'), yy=parts[2]; if(yy.length===2) yy='20'+yy; const iso=yy+'-'+mm+'-'+dd; d=new Date(iso); if(!isNaN(d)) return d; } return null; }
+function formatDateString(s){ const d=parseDateFlexible(s); return d? d.toISOString().slice(0,10) : (s||''); }
+function formatRM(v){ if(!v) return ''; const num=Number(String(v).replace(/[^0-9.\-]/g,'')); if(isNaN(num)) return String(v); return num.toLocaleString(); }
+
+function isAktif(r, map){ const t=parseDateFlexible(getField(r,map,'tarikh_tamat')); return t && t > new Date(); }
+function is6Bulan(r, map){ const t=parseDateFlexible(getField(r,map,'tarikh_tamat')); if(!t) return false; const now=new Date(); const in6=new Date(); in6.setMonth(in6.getMonth()+6); return t>=now && t<=in6; }
+function isTahunSemasa(r, map){ const t=parseDateFlexible(getField(r,map,'tarikh_tamat')); if(!t) return false; const now=new Date(); return t.getFullYear()===now.getFullYear() && t < now; }
+
+function uniq(a){ return [...new Set(a.filter(x=>x))]; }
+
+function renderTable(rows, map, highlightEnabled){
+  const tb=document.getElementById("tableBody"); tb.innerHTML='';
+  rows.forEach(r=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td class="p-2">${getField(r,map,'kod_item')}</td>
+    <td class="p-2">${getField(r,map,'tajuk')}</td>
+    <td class="p-2">${formatRM(getField(r,map,'nilai_rm'))}</td>
+    <td class="p-2">${getField(r,map,'no_kontrak')}</td>
+    <td class="p-2">${getField(r,map,'jenis')}</td>
+    <td class="p-2">${getField(r,map,'perolehan')}</td>
+    <td class="p-2">${formatDateString(getField(r,map,'tarikh_mula'))}</td>
+    <td class="p-2">${formatDateString(getField(r,map,'tarikh_tamat'))}</td>
+    <td class="p-2">${getField(r,map,'status')}</td>
+    <td class="p-2">${formatDateString(getField(r,map,'tarikh_iklan'))}</td>
+    <td class="p-2">${getField(r,map,'mesyuarat_teknikal')}</td>
+    <td class="p-2">${getField(r,map,'hantar_laporan_teknikal')}</td>`;
+    // apply highlight
+    if(highlightEnabled){
+      const t = parseDateFlexible(getField(r,map,'tarikh_tamat'));
+      if(t){
+        const now=new Date(); const in6=new Date(); in6.setMonth(in6.getMonth()+6);
+        if(t < now) tr.style.background='rgba(220,38,38,0.08)'; else if(t >= now && t <= in6) tr.style.background='rgba(234,179,8,0.06)';
+      }
+    }
+    tb.appendChild(tr);
+  });
+}
+
+function updateCards(rows, map){
+  document.getElementById("cardCount").textContent = rows.length;
+  document.getElementById("cardTotalRM").textContent = formatRM(rows.reduce((a,b)=>a+Number(String(getField(b,map,'nilai_rm')).replace(/[^0-9.\-]/g,'' )||0),0));
+  const year = document.getElementById("filterYear").value;
+  document.getElementById("cardYear").textContent = (year==='all')?'-':year;
+}
+
+function drawCharts(rows, map){
+  const jenisCount = {}; const trendCount = {};
+  rows.forEach(r=>{ const j=getField(r,map,'jenis')||'Lain'; jenisCount[j]=(jenisCount[j]||0)+1; const d=parseDateFlexible(getField(r,map,'tarikh_mula')); const y=d?d.getFullYear():'-'; trendCount[y]=(trendCount[y]||0)+1; });
+  if(window._chartJenis) window._chartJenis.destroy();
+  if(window._chartTrend) window._chartTrend.destroy();
+  const ctx1=document.getElementById("chartJenis").getContext("2d");
+  const ctx2=document.getElementById("chartTrend").getContext("2d");
+  window._chartJenis = new Chart(ctx1,{type:'bar',data:{labels:Object.keys(jenisCount),datasets:[{data:Object.values(jenisCount)}]}});
+  window._chartTrend = new Chart(ctx2,{type:'line',data:{labels:Object.keys(trendCount),datasets:[{data:Object.values(trendCount)}]}});
+}
+
+function sortByTarikhTamat(rows, map){
+  return rows.slice().sort((a,b)=>{ const ta=parseDateFlexible(getField(a,map,'tarikh_tamat')); const tb=parseDateFlexible(getField(b,map,'tarikh_tamat')); if(ta && tb) return ta - tb; if(ta && !tb) return -1; if(!ta && tb) return 1; return 0; });
+}
+
+function kontrakStatusCounts(rows, map){
+  const now=new Date(); const counts={tamat:0,'6bulan':0,'1tahun':0};
+  rows.forEach(r=>{ const t=parseDateFlexible(getField(r,map,'tarikh_tamat')); if(!t) return; if(t < now) counts.tamat++; const in6=new Date(); in6.setMonth(in6.getMonth()+6); if(t>=now && t<=in6) counts['6bulan']++; const in1=new Date(); in1.setFullYear(in1.getFullYear()+1); if(t>=now && t<=in1) counts['1tahun']++; });
+  return counts;
+}
+
+function exportToCSV(rows, map){
+  if(!rows || rows.length===0) return;
+  const header = ['KOD ITEM','TAJUK','NILAI (RM)','NO KONTRAK','JENIS','PEROLEHAN','TARIKH MULA KONTRAK','TARIKH TAMAT KONTRAK','STATUS','TARIKH IKLAN','MESYUARAT TEKNIKAL','HANTAR LAPORAN TEKNIKAL KE PEROLEHAN'];
+  const csvRows = [header.join(',')];
+  rows.forEach(r=>{ const row=[ getField(r,map,'kod_item'), getField(r,map,'tajuk'), getField(r,map,'nilai_rm'), getField(r,map,'no_kontrak'), getField(r,map,'jenis'), getField(r,map,'perolehan'), getField(r,map,'tarikh_mula'), getField(r,map,'tarikh_tamat'), getField(r,map,'status'), getField(r,map,'tarikh_iklan'), getField(r,map,'mesyuarat_teknikal'), getField(r,map,'hantar_laporan_teknikal') ].map(v=>`"${String(v||'').replace(/"/g,'""')}"`); csvRows.push(row.join(',')); });
+  const blob = new Blob([csvRows.join('\n')], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='hctm_export_'+(new Date()).toISOString().slice(0,10)+'.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+async function main(){
+  let rows = [];
+  try{
+    rows = await loadCSV(CSV_URL);
+  }catch(e){
+    console.error('Gagal muat turun CSV:', e);
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="12" class="p-4">Gagal muat turun data CSV. Semak pautan atau sambungan internet.</td></tr>';
+    return;
+  }
+  const headers = Object.keys(rows[0]||{});
+  const map = detectMapping(headers);
+  (function populate(){ const yearSet=new Set(); const statusSet=new Set(); rows.forEach(r=>{ const mk=getField(r,map,'tarikh_mula'); const d=parseDateFlexible(mk); if(d) yearSet.add(d.getFullYear()); else{ const parts=String(mk).split(/[\/\-]/); if(parts.length===3){ let yy=parts[2]; if(yy.length===2) yy='20'+yy; const y=parseInt(yy); if(!isNaN(y)) yearSet.add(y);} } const st=getField(r,map,'status'); if(st && String(st).trim().length>0) statusSet.add(String(st).trim()); }); const years=Array.from(yearSet).sort((a,b)=>b-a); const ys=document.getElementById('filterYear'); if(ys){ ys.innerHTML = '<option value="all">Semua</option>' + years.map(y=>`<option value="${y}">${y}</option>`).join(''); } const ss=document.getElementById('filterStatus'); if(ss){ ss.innerHTML = '<option value="all">Semua</option>' + Array.from(statusSet).sort().map(s=>`<option value="${s}">${s}</option>`).join(''); } })();
+  let highlightEnabled = true;
+  function render(){
+    let f = rows.slice();
+    const fy=document.getElementById('filterYear').value;
+    const fj=document.getElementById('filterJenis').value;
+    const fs=document.getElementById('filterStatus').value;
+    const fc=document.getElementById('filterContract').value;
+    if(fy!=='all') f = f.filter(r=>{ const d=parseDateFlexible(getField(r,map,'tarikh_mula')); return d && String(d.getFullYear())===String(fy); });
+    if(fj!=='all') f = f.filter(r=> (getField(r,map,'jenis')||'').toUpperCase()===fj.toUpperCase() );
+    if(fs!=='all') f = f.filter(r=> (getField(r,map,'status')||'')===fs );
+    if(fc==='aktif') f = f.filter(r=> isAktif(r,map) );
+    if(fc==='6bulan') f = f.filter(r=> is6Bulan(r,map) );
+    if(fc==='tahuns') f = f.filter(r=> isTahunSemasa(r,map) );
+    f = sortByTarikhTamat(f,map);
+    updateCards(f,map);
+    renderTable(f,map,highlightEnabled);
+    drawCharts(f,map);
+    const counts = kontrakStatusCounts(f,map);
+    document.getElementById('ks_tamat').textContent = counts.tamat;
+    document.getElementById('ks_6bulan').textContent = counts['6bulan'];
+    document.getElementById('ks_1tahun').textContent = counts['1tahun'];
+  }
+  document.querySelectorAll("select").forEach(s=>s.addEventListener("change",render));
+  document.getElementById("btnReset").addEventListener("click",()=>{ document.querySelectorAll("select").forEach(s=>s.value="all"); render(); });
+  document.getElementById("btnExport").addEventListener("click", ()=>{ const fdata = sortByTarikhTamat(rows,map); exportToCSV(fdata,map); });
+  document.getElementById("btnToggleHighlight").addEventListener("click", ()=>{ highlightEnabled = !highlightEnabled; render(); });
+  render();
+}
+
 main();
 </script>
 </body>
